@@ -1,0 +1,7 @@
+{
+  "status.enabled": "{Green}turned on{Default}",
+  "status.disabled": "{LightRed}turned off{Default}",
+  "command.toggle": "{0}You {1} hide players!",
+  "reload.success": "{0}Configuration reloaded successfully.",
+  "reload.failed": "{0}Failed to reload configuration."
+}

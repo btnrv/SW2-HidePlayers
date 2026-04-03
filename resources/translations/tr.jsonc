@@ -1,0 +1,7 @@
+{
+  "status.enabled": "{Green}aktifleştirildi{Default}",
+  "status.disabled": "{LightRed}kapatıldı{Default}",
+  "command.toggle": "{0}Oyuncu gizleme {1}.",
+  "reload.success": "{0}Eklenti seçenekleri yeniden yüklendi.",
+  "reload.failed": "{0}Eklenti seçenekleri yeniden yüklenemedi."
+}
