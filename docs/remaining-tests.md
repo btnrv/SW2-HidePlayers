@@ -1,0 +1,5 @@
+- Switch between off/all/team/enemy and both corpse settings. Check teammates and enemies separately, before death and after respawn, including a corpse that already exists when the choice changes.
+- Spectate a target, enable `HideDead`, then let that target die. Confirm the client remains stable and living targets remain visible to spectators.
+- Change teams, reconnect, and change maps. Confirm saved choices return and old pawn/player slots do not retain transmit blocks.
+- With Panorama resources mounted, have two players open the UI independently. Check selected buttons and private labels, close and reopen, reconnect, change maps, and apply/clear an API override. Confirm close releases the mouse and each player retains their own menu state. Open a framework menu from another plugin before `!hide` and confirm the Panorama menu replaces it.
+- Register a custom provider, open and close its HUD, then unload/reload it. Confirm input capture is released, its override is cleared, and the built-in menu returns after unregistration.

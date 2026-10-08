@@ -1,85 +1,87 @@
-<div align="center">
-  <img src="https://pan.samyyc.dev/s/VYmMXE" />
-  <h2><strong>HidePlayers</strong></h2>
-  <h3>Let players toggle visibility of other player models on a CS2 SwiftlyS2 server.</h3>
-</div>
+# HidePlayers
 
-<p align="center">
-  <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status">
-  <img src="https://img.shields.io/github/downloads/btnrv/SW2-HidePlayers/total" alt="Downloads">
-  <img src="https://img.shields.io/github/stars/btnrv/SW2-HidePlayers?style=flat&logo=github" alt="Stars">
-  <img src="https://img.shields.io/github/license/btnrv/SW2-HidePlayers" alt="License">
-  <img src="https://img.shields.io/badge/.NET-10.0-512BD4" alt=".NET 10">
-</p>
-
----
-
-## Commands
-
-| Command (default) | Description |
-|---|---|
-| `!hide` / `!hidemodels` | Toggle hiding other player models |
-| `hide_reload` | Reload the config (admin) |
-
-Command names and permissions are fully configurable in `config.jsonc`.
-
-## Configuration
-
-Config file: `cfg/hideplayers/config.jsonc`
-
-| Option | Default | Description |
-|---|---|---|
-| `Prefix` | `[gold][Hide][default]` | Chat message prefix |
-| `Commands` | `["hide", "hidemodels"]` | Commands that toggle visibility |
-| `CommandPermission` | `""` | Permission required to use the toggle (empty = everyone) |
-| `ReloadCommand` | `"hide_reload"` | Command to reload the config |
-| `ReloadPermission` | `"hideplayers.reload"` | Permission required to reload |
-| `HideMode` | `"@all"` | Who gets hidden when toggled (see below) |
-
-### Hide Modes
-
-| Value | Behavior |
-|---|---|
-| `@all` | Hides all other players |
-| `@team` | Hides only teammates |
-| `@enemy` | Hides only enemies |
-
-## Building from Source
-
-### Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- SwiftlyS2 server runtime
-
-### Build
-
-```bash
-git clone https://github.com/btnrv/HidePlayers.git
-cd HidePlayers
-dotnet publish -c Release
-```
-
-The output zip will be at `build/publish/HidePlayers.zip`, ready to drop into your server.
+Plugin to allow players to hide players with persistence across sessions on a CS2 SwiftlyS2 server.
 
 ## Installation
 
-1. Extract `HidePlayers.zip` into your SwiftlyS2 `plugins/` directory.
-2. Edit `cfg/hideplayers/config.jsonc` to set your preferred commands, permissions, and hide mode.
-3. Restart the server or reload SwiftlyS2.
+1. Extract `HidePlayers.zip` into SwiftlyS2's `plugins/` directory, preserving the `HidePlayers/resources/exports/` folder.
+2. Configure a MariaDB connection in SwiftlyS2's database configuration. HidePlayers uses the native `Core.Database` service and the connection named `default`; credentials belong to the server configuration.
+3. Start the plugin to generate `configs/plugins/HidePlayers/settings.jsonc` under SwiftlyS2's configuration root. Edit it, then restart the plugin to apply changes.
+4. Join the server and enter `!hide` to open the menu.
 
----
+The database account must be able to create, alter, and read/write `hideplayers_preferences`. The plugin creates or updates this table automatically and loads/saves preferences asynchronously by SteamID.
 
-## Planned Features
+## Commands
 
-- [ ] Hide dead players (remove corpses from transmit for better FPS)
-- [ ] "Hide Menu" so players can select hide target instead of a simple toggle
-- [ ] Cookies dependency for preference persistence across sessions
-- [ ] Add shared API so other plugins can control player hide state dict (useful for minigame plugins etc.)
+These examples use the default command names. The chat prefix comes from the server's command configuration; `!` is an example.
 
-## Acknowledgements
+| Player console | Chat example | Action |
+| --- | --- | --- |
+| — | `!hide` / `!hidemodels` | Open the menu |
+| `sw_hide` | — | Toggle player hiding off or back to your last selected mode |
+| `sw_hide off` | `!hide off` | Show living players |
+| `sw_hide all` | `!hide all` | Hide all other living players |
+| `sw_hide team` | `!hide teammates` | Hide living teammates |
+| `sw_hide enemy` | `!hide enemies` | Hide living enemies |
+| `sw_hide dead on` | `!hide dead on` | Hide corpses |
+| `sw_hide dead off` | `!hide dead off` | Show corpses |
+| `sw_hide dead toggle` | `!hide dead toggle` | Toggle corpse visibility |
 
-Inspired by and mostly ported from [CS2-HidePlayers](https://github.com/qstage/CS2-HidePlayers).
+The console toggle remembers your last All/Team/Enemy choice across reconnects. It uses All if you have never selected a mode. Corpse hiding stays separate. These commands cannot be used from the server console.
 
-## License
+You can use `teammates` instead of `team`, and `enemies` instead of `enemy`. While alive on T or CT, you can hide other players, but never yourself. Dead players and spectators can see living players.
 
-See [LICENSE](LICENSE) for details.
+Corpse hiding is a separate setting and also works while spectating. Use `!hide dead off` to show corpses; `!hide off` only shows living players.
+
+By default, the menu uses your server's SwiftlyS2 style. You can also use the included Panorama menu. Both show your choices and tell you when another plugin overrides them. If another plugin provides a custom menu, `!hide` opens that instead.
+
+## Configuration
+
+`settings.jsonc` has this structure:
+
+```jsonc
+{
+  "Main": {
+    "DefaultPreferences": {
+      "Mode": "Off",
+      "HideDead": true
+    },
+    "MenuCommand": {
+      "Name": "hide",
+      "Aliases": ["hidemodels"],
+      "Permission": ""
+    },
+    "MenuRenderer": "Framework",
+    "PanoramaLayout": "panorama/layout/custom_game/hideplayers.vxml_c",
+    "DatabaseConnection": "default",
+    "Prefix": "{Gold}[HidePlayers]{Default} "
+  }
+}
+```
+
+| Setting | What it does |
+| --- | --- |
+| `DefaultPreferences` | Settings for players who have no saved choices. Modes: `Off`, `All`, `Teammates`, `Enemies`. |
+| `MenuCommand.Permission` | Permission needed to use the menu or commands. Leave empty to allow everyone. |
+| `DatabaseConnection` | Name of the MariaDB connection configured in SwiftlyS2. |
+| `Prefix` | Text shown before the plugin's chat replies. |
+| `MenuRenderer` | `Framework` for the usual SwiftlyS2 menu, or `Panorama` for the XML/CSS menu. |
+| `PanoramaLayout` | Path to the compiled layout in your Panorama addon. |
+
+To use Panorama, compile the editable files in `resources/panorama-addon/` into your addon and distribute it to players. Then set `MenuRenderer` to `Panorama`. See the [Panorama setup guide](docs/custom-menu.md#enable-the-bundled-panorama-menu).
+
+## Shared API and custom menus
+
+Other plugins can read a player's settings, temporarily change what they see, or provide a custom menu. See the [integration guide](docs/custom-menu.md) for the API and examples.
+
+## Implemented features
+
+- [x] Hide preferences
+- [x] Menu with all/team/enemy/off choices
+- [x] Database persistence across sessions
+- [x] Shared API for temporary activity overrides and custom menus
+- [x] Editable Panorama XML/CSS menu with configurable renderer and layout path
+
+## Acknowledgements and license
+
+Inspired by [CS2-HidePlayers](https://github.com/qstage/CS2-HidePlayers). See [LICENSE](LICENSE).

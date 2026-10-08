@@ -1,0 +1,112 @@
+/* Customize colors, spacing and fonts. Preserve Dismissed and Selected behavior. */
+.HidePlayersScreen
+{
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+}
+
+.HidePlayersWindow
+{
+    horizontal-align: center;
+    vertical-align: center;
+    width: 440px;
+    padding: 28px;
+    flow-children: down;
+    background-color: #141b24f5;
+    border: 1px solid #536070;
+    border-radius: 8px;
+}
+
+.HidePlayersWindow Label
+{
+    font-family: "Stratum2", "Arial";
+    font-size: 20px;
+    color: #e6edf5;
+}
+
+.HidePlayersWindow .Title
+{
+    font-size: 30px;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+
+.HidePlayersWindow .Override
+{
+    width: 100%;
+    font-size: 18px;
+    color: #f1c86a;
+    margin-bottom: 14px;
+}
+
+.ModeList
+{
+    width: 100%;
+    flow-children: down;
+}
+
+.Choice
+{
+    width: 100%;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background-color: #253140;
+    border: 1px solid #475568;
+    border-radius: 4px;
+}
+
+.Choice:hover
+{
+    background-color: #35465a;
+}
+
+.Choice.Selected
+{
+    background-color: #48543b;
+    border: 1px solid #c7dd90;
+}
+
+.Choice.Selected Label
+{
+    color: #e2f5bc;
+    font-weight: bold;
+}
+
+.HidePlayersWindow .SectionTitle
+{
+    margin-top: 12px;
+    margin-bottom: 10px;
+}
+
+.DeadChoices
+{
+    width: 100%;
+    flow-children: right;
+}
+
+.HalfWidth
+{
+    width: fill-parent-flow(1);
+    margin-right: 6px;
+}
+
+.CloseButton
+{
+    horizontal-align: right;
+    padding: 10px 20px;
+    margin-top: 14px;
+    background-color: #253140;
+    border: 1px solid #475568;
+    border-radius: 4px;
+}
+
+.CloseButton:hover
+{
+    background-color: #35465a;
+}
+
+.Dismissed
+{
+    visibility: collapse;
+}
