@@ -1,15 +1,17 @@
 {
+  "menu.title": "Oyuncuları Gizle",
   "menu.close": "Kapat",
-  "menu.title": "Oyuncu gizleme",
   "menu.mode.Off": "Tüm oyuncuları göster",
   "menu.mode.All": "Tüm oyuncuları gizle",
   "menu.mode.Teammates": "Takım arkadaşlarını gizle",
   "menu.mode.Enemies": "Rakipleri gizle",
+  "menu.selected": "✔ {0}",
   "menu.hide_dead": "Cesetleri gizle",
+  "menu.hide_dead_state": "{0}: {1}",
   "menu.override": "Etkinlik ayarları uygulanıyor",
-  "command.player_only": "{0}Bu komutu yalnızca oyuncular kullanabilir.",
-  "command.usage": "{0}Kullanım: !{1} [off|all|team|enemies] veya !{1} dead [on|off|toggle].",
-  "command.applied": "{0}Seçilen: {1}. Ceset gizleme: {2}.",
   "status.on": "açık",
-  "status.off": "kapalı"
+  "status.off": "kapalı",
+  "command.player_only": "[white]Bu komutu yalnızca oyuncular kullanabilir.",
+  "command.usage": "[white]Kullanım: [green]{0}{1} (off|all|team|enemies)[white] veya [green]{0}{1} dead (on|off|toggle)[white].",
+  "command.applied": "[white]Seçilen: [green]{0}[white]. Ceset gizleme: [green]{1}[white]."
 }

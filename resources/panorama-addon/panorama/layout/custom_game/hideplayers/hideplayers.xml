@@ -5,7 +5,7 @@
 -->
 <root>
     <styles>
-        <include src="s2r://panorama/styles/custom_game/hideplayers.vcss_c" />
+        <include src="s2r://panorama/styles/custom_game/hideplayers/hideplayers.vcss_c" />
     </styles>
     <!-- The compiler assigns the outer panel's ID; keep this wrapper anonymous. -->
     <Panel class="HidePlayersScreen" hittest="false">
@@ -28,7 +28,7 @@
             </Panel>
             <Label id="hideplayers_dead_label" class="SectionTitle" text="{s:text}" hittest="false" />
             <Panel class="DeadChoices" hittest="false">
-                <Button id="hideplayers_dead_on" class="Choice HalfWidth">
+                <Button id="hideplayers_dead_on" class="Choice HalfWidth HalfGap">
                     <Label id="hideplayers_dead_on_label" text="{s:text}" hittest="false" />
                 </Button>
                 <Button id="hideplayers_dead_off" class="Choice HalfWidth">

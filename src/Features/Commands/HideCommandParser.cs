@@ -1,8 +1,12 @@
 using HidePlayers.Contract;
 
-namespace HidePlayers.Configuration;
+namespace HidePlayers;
 
-public static class HideCommandParser
+/// <summary>
+/// Reads the arguments of the hide command: a mode (off, all, team or teammates, enemy or enemies),
+/// or "dead" followed by on, off or toggle.
+/// </summary>
+internal static class HideCommandParser
 {
     public static bool TryParse(string[] arguments, HidePreferences current, out HidePreferences result)
     {
@@ -18,7 +22,10 @@ public static class HideCommandParser
                 _ => null
             };
             if (mode is not { } selected)
+            {
                 return false;
+            }
+
             result = current with { Mode = selected };
             return true;
         }
@@ -33,7 +40,10 @@ public static class HideCommandParser
                 _ => null
             };
             if (hideDead is not { } selected)
+            {
                 return false;
+            }
+
             result = current with { HideDead = selected };
             return true;
         }

@@ -85,9 +85,14 @@
     flow-children: right;
 }
 
+/* Two equal columns. The gap sits on the first button only, so the row has no trailing margin. */
 .HalfWidth
 {
     width: fill-parent-flow(1);
+}
+
+.HalfGap
+{
     margin-right: 6px;
 }
 

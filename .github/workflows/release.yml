@@ -12,110 +12,190 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: 10.0.x
 
-      - name: Resolve Version
+      # Event data reaches the script through env, never through ${{ }} inside the script.
+      - name: Resolve and check the version
         id: version
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            RAW="${{ github.event.inputs.version }}"
-            RAW="${RAW#v}"
-            TAG="v${RAW}"
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            raw="$INPUT_VERSION"
           else
-            TAG="${GITHUB_REF_NAME}"
-            RAW="${TAG#v}"
+            raw="$REF_NAME"
+          fi
+          raw="${raw#v}"
+          if [[ ! "$raw" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$raw' is not a version like 1.2.3 or 1.2.3-rc.1"
+            exit 1
           fi
 
-          if [[ "${RAW}" == *"-"* ]]; then
-            PRERELEASE="true"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            tag="v$raw"
           else
-            PRERELEASE="false"
+            tag="$REF_NAME"
+          fi
+          if [[ "$raw" == *-* ]]; then
+            prerelease=true
+          else
+            prerelease=false
           fi
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${RAW}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          metadata="$(grep -A8 -F '[PluginMetadata' src/HidePlayers.cs | grep -oP '\bVersion\s*=\s*"\K[^"]+' | head -n 1 || true)"
+          if [[ -z "$metadata" ]]; then
+            echo "::error::Could not read Version from [PluginMetadata] in src/HidePlayers.cs"
+            exit 1
+          fi
+          if [[ "$metadata" != "$raw" ]]; then
+            echo "::error::Release $raw does not match [PluginMetadata] Version $metadata in src/HidePlayers.cs"
+            exit 1
+          fi
 
-      - name: Ensure Tag Exists (manual run)
-        if: github.event_name == 'workflow_dispatch'
+          {
+            echo "tag=$tag"
+            echo "version=$raw"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        run: dotnet restore HidePlayers.csproj
+
+      # Writes build/publish/HidePlayers/ and build/HidePlayers.zip (the template's CreateZip target).
+      - name: Publish
+        run: dotnet publish HidePlayers.csproj -c Release --no-restore
+
+      # Keep this step in sync with build.yml.
+      - name: Check the plugin zip
         shell: bash
         run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag ${TAG} already exists."
-            exit 0
+          set -euo pipefail
+          zip=build/HidePlayers.zip
+          if [[ ! -f "$zip" ]]; then
+            echo "::error::$zip was not produced"
+            exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${TAG}" "${GITHUB_SHA}"
-          git push origin "${TAG}"
+          entries="$(unzip -Z1 "$zip")"
+          echo "$entries"
 
-      - name: Publish HidePlayers
-        run: |
-          dotnet restore HidePlayers.csproj
-          dotnet publish HidePlayers.csproj -c Release --nologo --no-restore
+          failed=0
+          for required in \
+            HidePlayers/HidePlayers.dll \
+            HidePlayers/resources/exports/HidePlayers.Contract.dll \
+            HidePlayers/resources/translations/en.jsonc; do
+            if ! grep -qxF "$required" <<< "$entries"; then
+              echo "::error::The zip is missing $required"
+              failed=1
+            fi
+          done
 
-      - name: Zip HidePlayers
+          # The server provides SwiftlyS2 and the framework packages, the Cookies plugin exports
+          # Cookies.Contract, and the contract belongs in resources/exports/ only.
+          forbidden='(^|/)(SwiftlyS2[^/]*\.dll|Microsoft\.Extensions[^/]*\.dll|Cookies\.Contract\.dll)$|^HidePlayers/HidePlayers\.Contract\.(dll|pdb)$'
+          if found="$(grep -E "$forbidden" <<< "$entries")"; then
+            echo "::error::The zip contains files that must not be published:"
+            echo "$found"
+            failed=1
+          fi
+          exit "$failed"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: HidePlayers
+          path: build/HidePlayers.zip
+          if-no-files-found: error
+
+  # The only job with write access. It publishes the zip the build job checked.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: HidePlayers
+          path: dist
+
+      - name: Generate release notes
         shell: bash
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
         run: |
-          cd build/publish
-          zip -r ../../HidePlayers.zip HidePlayers/
-
-      - name: Generate Release Notes
-        id: notes
-        shell: bash
-        run: |
-          TAG="${{ steps.version.outputs.tag }}"
-          VERSION="${{ steps.version.outputs.version }}"
-          PRERELEASE="${{ steps.version.outputs.prerelease }}"
-
-          if [[ "${PRERELEASE}" == "true" ]]; then
-            PREV_TAG=$(git tag --sort=-version:refname | grep -v "^${TAG}$" | head -n 1 || true)
+          set -euo pipefail
+          # Only tags that are already part of this commit's history count as the previous release.
+          if [[ "$PRERELEASE" == "true" ]]; then
+            pattern='.'
           else
-            PREV_TAG=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${TAG}$" | head -n 1 || true)
+            pattern='^v?[0-9]+\.[0-9]+\.[0-9]+$'
           fi
+          prev_tag="$(git tag --merged "$GITHUB_SHA" --sort=-version:refname | grep -E "$pattern" | grep -vxF "$TAG" | head -n 1 || true)"
 
           {
             echo "## HidePlayers v${VERSION}"
             echo
-            if [[ -n "${PREV_TAG}" ]]; then
-              echo "_Compared to ${PREV_TAG}_"
+            if [[ -n "$prev_tag" ]]; then
+              echo "_Compared to ${prev_tag}_"
               echo
-              RANGE="${PREV_TAG}..${TAG}"
+              range="${prev_tag}..${GITHUB_SHA}"
             else
               echo "_First release_"
               echo
-              RANGE="${TAG}"
+              range="${GITHUB_SHA}"
             fi
-            COMMITS=$(git log "${RANGE}" --pretty=format:'- %s ([`%h`](https://github.com/${{ github.repository }}/commit/%H))')
-            if [[ -z "${COMMITS}" ]]; then
+            commits="$(git log "$range" --pretty=format:"- %s ([\`%h\`](https://github.com/${GITHUB_REPOSITORY}/commit/%H))")"
+            if [[ -z "$commits" ]]; then
               echo "- No commit details found."
             else
-              echo "${COMMITS}"
+              echo "$commits"
             fi
           } > release_notes.md
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+      # Creates the tag at this commit when a manual run names a version that has no tag yet.
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: HidePlayers v${{ steps.version.outputs.version }}
-          prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
+          tag_name: ${{ needs.build.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: HidePlayers v${{ needs.build.outputs.version }}
+          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
           body_path: release_notes.md
-          files: HidePlayers.zip
+          files: dist/HidePlayers.zip
+          fail_on_unmatched_files: true

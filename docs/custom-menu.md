@@ -2,21 +2,32 @@
 
 ## Enable the bundled Panorama menu
 
-HidePlayers includes editable [layout XML](../resources/panorama-addon/panorama/layout/custom_game/hideplayers.xml) and [stylesheet CSS](../resources/panorama-addon/panorama/styles/custom_game/hideplayers.css). Configure `Main.MenuRenderer` as `Panorama` and `Main.PanoramaLayout` as `panorama/layout/custom_game/hideplayers.vxml_c` after compiling and distributing these resources. `Framework` remains the default. A registered `IHidePlayersMenuProvider` takes priority.
+HidePlayers includes editable [layout XML](../resources/panorama-addon/panorama/layout/custom_game/hideplayers/hideplayers.xml) and [stylesheet CSS](../resources/panorama-addon/panorama/styles/custom_game/hideplayers/hideplayers.css). Configure `Main.MenuRenderer` as `Panorama` after compiling and distributing these resources. `Main.PanoramaLayout` already defaults to the bundled layout. `Framework` (the `Core.Menu` menu) remains the default renderer. A registered `IHidePlayersMenuProvider` takes priority over both.
 
-The plugin creates a native `CCSCustomHudLayout` when the menu is first needed on a map. Labels, selected classes, visibility, and mouse capture are set separately for each player. Close collapses the panel and releases input. Button selections dispatch the configured `sw_<MenuCommand.Name>` command through normal permissions and persistence.
+| What | Resource path |
+| --- | --- |
+| Layout | `panorama/layout/custom_game/hideplayers/hideplayers.xml` |
+| Stylesheet | `panorama/styles/custom_game/hideplayers/hideplayers.css` |
+| Stylesheet include in the layout | `s2r://panorama/styles/custom_game/hideplayers/hideplayers.vcss_c` |
+| Default `Main.PanoramaLayout` | `panorama/layout/custom_game/hideplayers/hideplayers.xml` |
+
+The `hideplayers` folder keeps these paths unique among the other layouts in your addon. Your addon may use other paths: copy the files there, change the stylesheet include in the XML, and set `Main.PanoramaLayout` to match.
+
+Which layout name the engine accepts, the source name (`...hideplayers.xml`) or the compiled one (`...hideplayers.vxml_c`), has to be confirmed on a client. The default uses the `.xml` form, like SwiftlyS2's [Custom HUD guide](https://swiftlys2.net/docs/development/custom-hud). If the client console reports `Failed to load layout`, set `Main.PanoramaLayout` to the `.vxml_c` name and restart the game.
+
+The plugin creates a native `CCSCustomHudLayout` when the menu is first needed on a map. Labels, selected classes, visibility, and mouse capture are set separately for each player. Close collapses the panel and releases input. A button click calls HidePlayers directly: the plugin maps the button to a choice and applies it at once. It does not run the `sw_<MenuCommand.Name>` command, and it accepts a click only from a player whose Panorama menu it opened. The command that opens the menu is permission-checked, so only a player who was allowed to open it can click.
 
 ### Compile and distribute the game resources
 
 The archive bundles sources only. Installing its XML/CSS under the server plugin folder does not mount or deliver them to clients. Use an addon you own:
 
-1. Create or open your addon in CS2 Workshop Tools. Copy the shipped layout into `content/csgo_addons/<your-addon>/panorama/layout/custom_game/hideplayers.xml` and the stylesheet into `panorama/styles/custom_game/hideplayers.css` under the same addon. Keep their contents and resource paths intact. Compile these source filenames directly; `.xml` becomes `.vxml_c` and `.css` becomes `.vcss_c`, as documented by [Source2Toolkit authoring](https://www.source2toolkit.net/docs/panorama/authoring) and the [resource type guide](https://github.com/Wend4r/s2r-skills/blob/main/resource-compiler/references/resources.md).
-2. Compile with CS2's Workshop Tools/ResourceCompiler. Confirm the game addon contains `panorama/layout/custom_game/hideplayers.vxml_c` and `panorama/styles/custom_game/hideplayers.vcss_c`.
-3. Publish or update your addon through Workshop Manager. Its contents preview must include both compiled resource types. If these directories are absent from the preview, include `panorama/layout/custom_game` and `panorama/styles/custom_game` in `AddonConfig/VpkDirectories` in the Workshop Tools installation's `game/csgo/gameinfo.gi`. The [probe development guide](https://github.com/nicedayzhu/CustomHudProbeSW2/blob/main/docs/DEVELOPMENT.md) documents this packaging step.
+1. Create or open your addon in CS2 Workshop Tools. Copy the shipped layout into `content/csgo_addons/<your-addon>/panorama/layout/custom_game/hideplayers/hideplayers.xml` and the stylesheet into `panorama/styles/custom_game/hideplayers/hideplayers.css` under the same addon. Keep their contents and resource paths intact. Compile these source filenames directly; `.xml` becomes `.vxml_c` and `.css` becomes `.vcss_c`, as documented by [Source2Toolkit authoring](https://www.source2toolkit.net/docs/panorama/authoring) and the [resource type guide](https://github.com/Wend4r/s2r-skills/blob/main/resource-compiler/references/resources.md).
+2. Compile with CS2's Workshop Tools/ResourceCompiler. Confirm the game addon contains `panorama/layout/custom_game/hideplayers/hideplayers.vxml_c` and `panorama/styles/custom_game/hideplayers/hideplayers.vcss_c`.
+3. Publish or update your addon through Workshop Manager. Its contents preview must include both compiled resource types. If these directories are absent from the preview, include `panorama/layout/custom_game/hideplayers` and `panorama/styles/custom_game/hideplayers` in `AddonConfig/VpkDirectories` in the Workshop Tools installation's `game/csgo/gameinfo.gi`. List the namespaced folders themselves: it is unconfirmed whether listing only the parent folders (`panorama/layout/custom_game` and `panorama/styles/custom_game`) also covers their subfolders. The [probe development guide](https://github.com/nicedayzhu/CustomHudProbeSW2/blob/main/docs/DEVELOPMENT.md) documents this packaging step.
 4. Install [SwiftlyS2 AddonsManager](https://github.com/SwiftlyS2-Plugins/AddonsManager) and add your published Workshop ID to `Main.Addons` in its `configs/plugins/AddonsManager/config.jsonc`, preserving existing IDs. Restart/reload AddonsManager. Use `sw_downloadaddon <your-workshop-id>` to request a download and `sw_searchpath` to confirm the mount. AddonsManager mounts the addon on the server and sends configured addons to joining clients.
-5. Set HidePlayers' renderer to `Panorama`, restart the plugin, and join with a client that has received the addon. Run `!hide`, choose each setting, close, and reopen.
+5. Set HidePlayers' renderer to `Panorama`, reload the plugin, and join with a client that has received the addon. Run `!hide`, choose each setting, close, and reopen.
 
-For an existing addon, preserve its `addoninfo.txt` and Panorama preprocessor configuration. The probe's resource build supplies `Panorama.AllowCustomGameUI = true` and `Panorama.AddonLayoutPath = "panorama/layout/custom_game/"` in addon metadata. For a new addon without `panorama/preprocessor_config.txt`, use this minimal KeyValues content:
+For an existing addon, preserve its `addoninfo.txt` and Panorama preprocessor configuration. The probe's resource build supplies `Panorama.AllowCustomGameUI = true` and `Panorama.AddonLayoutPath = "panorama/layout/custom_game/"` in addon metadata. If you move the layout outside `panorama/layout/custom_game/`, check that this path setting still covers it. For a new addon without `panorama/preprocessor_config.txt`, use this minimal KeyValues content (the same file is in `resources/panorama-addon/panorama/`):
 
 ```text
 "PanzipCfg"
@@ -36,24 +47,24 @@ $source = "$cs2Root\content\csgo_addons\$addon\panorama"
 $output = "$cs2Root\game\csgo_addons\$addon\panorama"
 Push-Location "$cs2Root\game\bin\win64"
 try {
-    & .\resourcecompiler.exe -i "$source\styles\custom_game\hideplayers.css"
+    & .\resourcecompiler.exe -i "$source\styles\custom_game\hideplayers\hideplayers.css"
     if ($LASTEXITCODE -ne 0) { throw 'Stylesheet compilation failed' }
-    Get-Item "$output\styles\custom_game\hideplayers.vcss_c" -ErrorAction Stop
+    Get-Item "$output\styles\custom_game\hideplayers\hideplayers.vcss_c" -ErrorAction Stop
 
-    & .\resourcecompiler.exe -i "$source\layout\custom_game\hideplayers.xml"
+    & .\resourcecompiler.exe -i "$source\layout\custom_game\hideplayers\hideplayers.xml"
     if ($LASTEXITCODE -ne 0) { throw 'Layout compilation failed' }
-    Get-Item "$output\layout\custom_game\hideplayers.vxml_c" -ErrorAction Stop
+    Get-Item "$output\layout\custom_game\hideplayers\hideplayers.vxml_c" -ErrorAction Stop
 }
 finally { Pop-Location }
 ```
 
-Read the compiler summary and confirm new outputs' sizes and timestamps. A successful compile does not validate CSS values in the client; check the mounted layout in game.
+Read the compiler summary and confirm new outputs' sizes and timestamps. A successful compile does not validate CSS values in the client; check the mounted layout in game. Restart the game after republishing, because clients cache layouts for the session.
 
-The [SwiftlyS2 Custom HUD guide](https://swiftlys2.net/docs/development/custom-hud) illustrates an `.xml` layout path; this bundled configuration uses the compiled `.vxml_c` resource name produced by the addon workflow above. Changing `PanoramaLayout` requires your mounted addon to contain the matching resource. No HidePlayers Workshop ID or compiled VPK is provided by this repository.
+No HidePlayers Workshop ID or compiled VPK is provided by this repository.
 
 ### Editing the bundled layout
 
-Change placement and styles while preserving the elements the renderer addresses:
+Change placement and styles while preserving the elements the plugin addresses:
 
 | Element | Required ID or class |
 | --- | --- |
@@ -68,13 +79,13 @@ Change placement and styles while preserving the elements the renderer addresses
 | Dynamic label text | `text="{s:text}"` |
 | Hidden/selected state | `Dismissed` collapses visibility; `Selected` highlights the chosen button |
 
-Keep an anonymous outer wrapper: the loader assigns its root ID. Put server-addressed IDs on inner panels. Use `hittest="false"` on labels and decorative panels; buttons accept only `id` and `class`. These constraints follow the [Custom HUD layout guide](https://github.com/Wend4r/s2r-skills/blob/main/custom-hud-layout/SKILL.md).
+Keep an anonymous outer wrapper: the loader assigns its root ID. Put plugin-addressed IDs on inner panels. Use `hittest="false"` on labels and decorative panels; buttons accept only `id` and `class`. These constraints follow the [Custom HUD layout guide](https://github.com/Wend4r/s2r-skills/blob/main/custom-hud-layout/SKILL.md). The `HalfWidth` and `HalfGap` classes only size the two corpse buttons as equal columns; they are free to change.
 
-The native click event handles button IDs. Scripts and `onactivate` handlers are not supported by this Custom HUD layout route; keep the XML declarative. To use a different set of IDs or behavior, register a provider and handle its owned layout's events as described below.
+The native click event hands the button ID to the plugin. Scripts and `onactivate` handlers are not supported by this Custom HUD layout route; keep the XML declarative. To use a different set of IDs or behavior, register a provider and handle its owned layout's events as described below.
 
 ## Consume the shared API
 
-A consumer plugin can replace the menu opened by a bare chat hide command, or temporarily override visibility for an activity. Reference `HidePlayers.Contract.dll` from the installed provider's `resources/exports/` directory and use `HidePlayers.Contract`; do not copy a second contract DLL into the consumer's deployed folder. Both plugins must use the same shared contract assembly.
+A consumer plugin can replace the menu opened by a bare chat hide command, or temporarily override visibility for an activity. Reference `HidePlayers.Contract.dll` from the installed provider's `resources/exports/` directory and use `HidePlayers.Contract`; do not copy a second contract DLL into the consumer's deployed folder. Both plugins must use the same shared contract assembly. SwiftlyS2 loads exported contracts at startup, so replacing `HidePlayers.Contract.dll` needs a full server restart.
 
 For a direct assembly reference, disable copying:
 
@@ -101,18 +112,20 @@ For an optional dependency, use `TryGetSharedInterface` instead. Release registr
 
 ## Preferences and temporary overrides
 
-All API calls run on the game thread and identify players by SwiftlyS2 player slot. Schedule background work onto that thread before accessing players, entities, or this API.
+All API calls run on the game thread and identify players by the SwiftlyS2 player slot of a connected human. A call from any other thread throws `InvalidOperationException`: schedule background work onto the game thread (for example with `Core.Scheduler.NextTick`) before touching players, entities, or this API.
 
 | Method | Result |
 | --- | --- |
-| `GetPreferences(slot)` | Personal choices, or `null` if the player is absent |
+| `GetPreferences(slot)` | Personal choices, or `null` if there is no such player |
 | `GetEffectivePreferences(slot)` | Personal choices with the current override applied, or `null` |
-| `SetOverride(slot, value)` | Replace the session override; return `false` if the player is absent |
-| `ClearOverride(slot)` | Restore the latest personal choices; return `false` if the player is absent |
+| `SetOverride(slot, value)` | Replace the session override; return `false` if there is no such player |
+| `ClearOverride(slot)` | Restore the latest personal choices; return `false` if there is no such player |
 | `RegisterMenuProvider(provider)` | Register one provider; reject a different provider while one is registered |
 | `UnregisterMenuProvider(provider)` | Remove only that same provider instance |
 
-`HidePreferences` contains `Mode` and `HideDead`. A `HideOverride` uses nullable fields: an omitted field continues to follow the player's personal choice. Overrides are temporary and never written to the database.
+`HidePreferences` contains `Mode` and `HideDead`. A `HideOverride` uses nullable fields: an omitted field continues to follow the player's personal choice.
+
+An override is session-only. It is never saved to the Cookies plugin, so it cannot change what a player has saved. HidePlayers clears it when the player disconnects and when the map unloads, so an activity that spans a map change must set its overrides again.
 
 ```csharp
 // Hide living enemies while leaving the player's corpse choice in effect.
@@ -126,7 +139,7 @@ Each `SetOverride` replaces the previous override; overrides do not stack or hav
 
 ## Registering a provider
 
-Implement `IHidePlayersMenuProvider.OpenMenu(int playerId)` on the instance that owns the HUD. After resolving the API, register that instance and check the returned value. Use the same instance to unregister on unload. The provider is called only for bare chat commands. A bare player-console command toggles player hiding between Off and the last selected mode. Command arguments still use HidePlayers' normal permission checks and preference persistence.
+Implement `IHidePlayersMenuProvider.OpenMenu(int playerId)` on the instance that owns the HUD. After resolving the API, register that instance and check the returned value. Only one provider can be registered at a time; a second, different provider is rejected. Use the same instance to unregister when your plugin unloads. Registering a provider closes the menus HidePlayers has open. The provider is called only for bare chat commands. A bare player-console command toggles player hiding between Off and the last selected mode. Command arguments still use HidePlayers' normal permission checks and Cookies persistence.
 
 The examples below are methods and fields inside a provider plugin that derives from `BasePlugin` and implements `IHidePlayersMenuProvider`. They use `SwiftlyS2.Shared.Events` and `SwiftlyS2.Shared.SchemaDefinitions`, alongside the contract and plugin namespaces.
 
@@ -134,12 +147,12 @@ The examples below are methods and fields inside a provider plugin that derives 
 
 Deliver the XML/CSS as Panorama game resources available to clients. Putting them in a plugin's resources folder alone does not deliver them to the game. This follows SwiftlyS2's [Custom HUD API](https://swiftlys2.net/docs/development/custom-hud).
 
-This separate provider example uses its own `my_hide_menu.vxml_c` layout and button IDs. A button's `id` is sent through `Core.Event.OnCustomHudClicked`; no JavaScript command bridge is needed:
+This separate provider example uses its own layout and button IDs. A button's `id` is sent through `Core.Event.OnCustomHudClicked`; no JavaScript command bridge is needed:
 
 ```xml
 <root>
   <styles>
-    <include src="s2r://panorama/styles/custom_game/my_hide_menu.vcss_c" />
+    <include src="s2r://panorama/styles/custom_game/my_hide_menu/my_hide_menu.vcss_c" />
   </styles>
   <Panel class="ProviderScreen" hittest="false">
     <Panel id="hide_menu" class="Dismissed" hittest="false">
@@ -156,7 +169,7 @@ This separate provider example uses its own `my_hide_menu.vxml_c` layout and but
 
 The provider's stylesheet must size `.ProviderScreen` to the full screen and set its `z-index: 99999`. Define `.Dismissed { visibility: collapse; }` and toggle that class on `hide_menu` separately for each player when opening or closing.
 
-Create the entity, set the layout path, notify the engine, then spawn it:
+Create the entity, set the layout path, notify the engine, then spawn it. Use the layout name your client accepts, as described above:
 
 ```csharp
 private CCSCustomHudLayout? _hud;
@@ -165,7 +178,9 @@ private readonly HashSet<int> _openSlots = [];
 private void CreateHud()
 {
     _hud = Core.EntitySystem.CreateEntity<CCSCustomHudLayout>();
-    _hud.StrLayout = "panorama/layout/custom_game/my_hide_menu.vxml_c";
+    _hud.Observable = false;
+    _hud.ObservableUpdated();
+    _hud.StrLayout = "panorama/layout/custom_game/my_hide_menu/my_hide_menu.xml";
     _hud.StrLayoutUpdated();
     _hud.DispatchSpawn();
 }
@@ -223,6 +238,6 @@ private void OnHudClicked(IOnCustomHudClickedEvent e)
 }
 ```
 
-The default console command is `sw_hide`. If the server changes `Main.MenuCommand.Name`, configure your provider to use the matching `sw_<name>` command. Dispatching through `player.ExecuteCommand` keeps the command's configured permission checks and database save behavior. Do not use temporary overrides to implement personal menu choices.
+A provider plugin cannot change a player's personal choice through the contract, which only reads choices and sets temporary overrides. So this example sends the hide command as the player. The default command is `sw_hide`; if the server changes `Main.MenuCommand.Name`, configure your provider to use the matching `sw_<name>` command. Dispatching it keeps the command's permission checks and Cookies persistence. A permission override in `command_overrides.jsonc` applies under the exact name used, so `sw_hide` and `hide` need separate entries. Do not use temporary overrides to implement personal menu choices.
 
 On close and disconnect, release that player's input capture and panel state. On map changes, release the old layout state and create a new layout when needed. On unload, unsubscribe the click event, close all open player menus, despawn your valid HUD, unregister the same provider instance, and clear overrides for the sessions your plugin still owns. HidePlayers resumes its configured Framework/Panorama menu once the provider is unregistered.

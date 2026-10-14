@@ -75,3 +75,6 @@ desktop.ini
 
 # Zip archives (build output)
 *.zip
+
+# Credentials (connection strings belong to the server, never to this repository)
+database.jsonc

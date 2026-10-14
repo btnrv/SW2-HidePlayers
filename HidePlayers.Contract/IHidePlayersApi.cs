@@ -1,8 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace HidePlayers.Contract;
 
-[JsonConverter(typeof(JsonStringEnumConverter<HideMode>))]
+/// <summary>Which living players a viewer hides.</summary>
 public enum HideMode
 {
     Off,
@@ -11,41 +9,57 @@ public enum HideMode
     Enemies
 }
 
-[method: JsonConstructor]
-public readonly record struct HidePreferences(HideMode Mode = HideMode.Off, bool HideDead = true)
-{
-    public HidePreferences() : this(HideMode.Off, true) { }
-}
+/// <summary>A viewer's personal choices: which living players to hide and whether to hide corpses.</summary>
+public readonly record struct HidePreferences(HideMode Mode, bool HideDead);
 
+/// <summary>Temporary values that replace a viewer's personal choices. A null member keeps the personal value.</summary>
 public readonly record struct HideOverride(HideMode? Mode = null, bool? HideDead = null)
 {
     public HidePreferences Apply(HidePreferences preferences) =>
         new(Mode ?? preferences.Mode, HideDead ?? preferences.HideDead);
 }
 
-/// <summary>Main-thread API for connected players, addressed by their SwiftlyS2 player slot.</summary>
+/// <summary>
+/// Shared API of the HidePlayers plugin, resolved with <see cref="InterfaceKey"/>.
+/// </summary>
+/// <remarks>
+/// Every member must be called on the game thread; the implementation throws <see cref="InvalidOperationException"/> otherwise.
+/// <c>playerId</c> is the SwiftlyS2 slot of a connected human player, never a SteamID or entity index.
+/// Overrides exist for the current connection only: they are never saved, and HidePlayers clears them when the player
+/// disconnects and when the map unloads. A plugin that needs an override on the next map applies it again after the map loads.
+/// HidePlayers rebuilds its state when it reloads, so consumers resolve the interface again in <c>UseSharedInterface</c> and
+/// apply their overrides again.
+/// </remarks>
 public interface IHidePlayersApi
 {
     const string InterfaceKey = "HidePlayers.API.v1";
 
+    /// <summary>Returns the player's personal choices, or null when no human player occupies the slot.</summary>
     HidePreferences? GetPreferences(int playerId);
+
+    /// <summary>Returns the choices in effect, personal choices with any override applied, or null for an absent player.</summary>
     HidePreferences? GetEffectivePreferences(int playerId);
 
-    /// <summary>Replaces this session's override without persisting it. Returns false for absent players.</summary>
+    /// <summary>Replaces this connection's override without saving it. Returns false for an absent player.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> holds an undefined <see cref="HideMode"/>.</exception>
     bool SetOverride(int playerId, HideOverride value);
 
-    /// <summary>Restores the player's latest personal choices. Consumers call this when their activity ends.</summary>
+    /// <summary>Restores the player's personal choices. Consumers call this when their activity ends.</summary>
     bool ClearOverride(int playerId);
 
-    /// <summary>Registers the menu opened by bare chat hide commands. Only one provider can be registered.</summary>
+    /// <summary>
+    /// Registers the menu that bare chat hide commands open instead of the built-in menus. Only one provider can be
+    /// registered; the call returns false while another is registered. Registering closes the menus HidePlayers has open.
+    /// </summary>
     bool RegisterMenuProvider(IHidePlayersMenuProvider provider);
 
-    /// <summary>Unregisters this provider. The owning plugin must call this when unloading.</summary>
+    /// <summary>Unregisters this provider. The owning plugin must call this in its <c>Unload</c>.</summary>
     bool UnregisterMenuProvider(IHidePlayersMenuProvider provider);
 }
 
-/// <summary>Allows a plugin to supply its own menu, including a SwiftlyS2 Panorama custom HUD.</summary>
+/// <summary>Lets a plugin supply its own menu, including a SwiftlyS2 Panorama custom HUD.</summary>
 public interface IHidePlayersMenuProvider
 {
+    /// <summary>Opens the menu for the human player in this slot. Called on the game thread.</summary>
     void OpenMenu(int playerId);
 }
