@@ -21,7 +21,7 @@ public sealed partial class HidePlayers
         }
 
         session.Override = value;
-        MarkVisibilityDirty();
+        _visibility.RequestRecalculation();
         if (Core.PlayerManager.GetPlayer(playerId) is { } player)
         {
             RefreshMenus(player);

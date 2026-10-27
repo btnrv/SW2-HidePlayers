@@ -38,6 +38,7 @@ public sealed partial class HidePlayers
 
         var session = new PlayerSession(player.SessionId, DefaultPreferences());
         _sessions[slot] = session;
+        _visibility.AddViewer(slot);
         return session;
     }
 
@@ -50,22 +51,19 @@ public sealed partial class HidePlayers
         {
             EnsureSession(player);
         }
-
-        MarkVisibilityDirty();
     }
 
     private void ForgetViewer(int slot)
     {
         ClosePanoramaMenu(slot);
-        _sessions.Remove(slot);
         // The engine clears a viewer's blocked entities on disconnect, so there is nothing to unblock.
-        _blocked.Remove(slot);
+        _sessions.Remove(slot);
+        _visibility.ForgetViewer(slot);
     }
 
     private void ClearPlayerState()
     {
         _sessions.Clear();
-        _blocked.Clear();
         _panoramaOpen.Clear();
     }
 
@@ -77,7 +75,7 @@ public sealed partial class HidePlayers
         }
 
         session.SetPreferences(preferences);
-        MarkVisibilityDirty();
+        _visibility.RequestRecalculation();
         RefreshMenus(player);
         if (_store is { } store && player.IsAuthorized)
         {
@@ -173,7 +171,7 @@ public sealed partial class HidePlayers
             return;
         }
 
-        MarkVisibilityDirty();
+        _visibility.RequestRecalculation();
         RefreshMenus(player);
     }
 

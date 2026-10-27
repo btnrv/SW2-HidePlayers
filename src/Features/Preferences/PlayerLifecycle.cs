@@ -16,8 +16,6 @@ public sealed partial class HidePlayers
         {
             BeginPreferenceLoad(player, session);
         }
-
-        MarkVisibilityDirty();
     }
 
     [EventListener<EventDelegates.OnClientSteamAuthorize>]
@@ -29,14 +27,11 @@ public sealed partial class HidePlayers
         {
             BeginPreferenceLoad(player, session);
         }
-
-        MarkVisibilityDirty();
     }
 
     [EventListener<EventDelegates.OnClientDisconnected>]
     private void OnClientDisconnected(IOnClientDisconnectedEvent @event)
     {
         ForgetViewer(@event.PlayerId);
-        MarkVisibilityDirty();
     }
 }

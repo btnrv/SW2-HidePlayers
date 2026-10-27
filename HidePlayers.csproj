@@ -39,6 +39,7 @@
   <ItemGroup>
     <Compile Remove="examples\**\*.cs" />
     <Compile Remove="HidePlayers.Contract/**/*.cs" />
+    <Compile Remove="tests/**/*.cs" />
   </ItemGroup>
 
   <Target Name="ExportContract" AfterTargets="Publish" BeforeTargets="CreateZip">

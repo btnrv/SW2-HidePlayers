@@ -48,14 +48,17 @@ To restrict the commands, set `MenuCommand.Permission`, or map both `hide` and `
 
 ## What is hidden
 
-- While alive on T or CT, you can hide other living players, but never yourself. Dead players and spectators can see living players.
-- Corpse hiding is a separate setting and also works while spectating. `!hide dead off` shows corpses; `!hide off` only shows living players.
-- The player you are currently spectating is never hidden, even with corpse hiding on.
+- While alive on T or CT, you can hide other living players, but never yourself. Dead players and spectators always see living players, so they can spectate them.
+- A hidden player is hidden with everything attached to them: held and holstered weapons, store cosmetics, particles and anything else parented to their pawn. Dropped weapons and thrown grenades stay visible.
+- Corpse hiding is a separate setting. `!hide dead off` shows corpses; `!hide off` only shows living players. While alive, corpses disappear as soon as the player dies. While dead or spectating, a corpse disappears about 6.5 seconds after its death (longer if the server's death camera is longer), because CS2 lets spectators switch to a recently dead player. A corpse you are watching stays visible and is checked again every second until your camera leaves it, since CS2 reports no camera change.
+- Your own pawns (current, original, default and taken-over bot) and whatever your camera uses (view entity, and while dead your observer targets) are never hidden, and neither is anything they are attached to.
 - Another plugin can override your choice for an activity. The menu then tells you the override is active.
 
-Hiding works by stopping the server from sending a player's entity to you (`IPlayer.ShouldBlockTransmitEntity`). Those bits are per viewer and shared with other plugins that block the same entities. HidePlayers only ever unblocks entities it blocked itself, and it clears its own blocks when it unloads.
+Hiding works by stopping the server from sending entities to you (`IPlayer.ShouldBlockTransmitEntity`). There is no per-tick work: spawns, deaths, team changes, bot takeovers, round starts and choice changes queue one recalculation, which runs at the end of the current game frame, before the engine builds the snapshot sent to players. A few changes also apply the moment they happen, because one made by a timer or another plugin's `NextTick` can come after that recalculation and still reach the frame's snapshot. A weapon or anything else attached to a hidden player is blocked when it is attached, so it is never sent without its holder, and shown again when it is detached. When you die, change team or take over a bot, your blocks are cleared, because your camera can move to another player, such as your killer. A player who respawns is shown at once to dead players and spectators.
 
-Known limitation: the weapons of a hidden player may still be visible. This still has to be confirmed on a live server and is not handled yet.
+SwiftlyS2 stops calling a game event's remaining handlers, in every plugin, once one returns `Handled` or `Stop`. GameManager returns `Handled` for `player_team` when `IgnoreJoinTeamMessages` is on, so HidePlayers listens to each event both before and after it fires. A plugin that returns `Stop` before `player_death` fires (GameManager's `HideKillFeed: 2`) removes the event entirely, and HidePlayers then learns of the death only at the next spawn, death or round start.
+
+Those bits are per viewer and shared with other plugins that block the same entities. HidePlayers does not claim a bit another plugin already set and only clears bits it set. SwiftlyS2 clears an entity's bits when the entity is deleted and a viewer's bits when they disconnect. HidePlayers releases its blocks on map unload and plugin unload. SwiftlyS2 has no per-plugin ownership for these bits: two plugins managing the same pawn cannot have independent blocks. Use one plugin to manage player-pawn visibility.
 
 ## Configuration
 
@@ -127,6 +130,23 @@ dotnet publish HidePlayers.csproj -c Release
 
 Publishing writes `build/publish/HidePlayers/` and `build/HidePlayers.zip`. The Cookies contract is compiled from the vendored `lib/Cookies.Contract.dll`, built from [SwiftlyS2-Plugins/Cookies](https://github.com/SwiftlyS2-Plugins/Cookies) (MIT). It is not published, because the Cookies plugin exports it. The release workflow in `.github/workflows/release.yml` builds and uploads the zip for each version tag.
 
+## Engine behavior this relies on
+
+Checked on 2026-10-25 against `SwiftlyS2.CS2/1.5.1-beta.3` (source revision `8d7fda2`) and CS2 1.41.9.2 (`server.dll`, `client.dll` and `engine2.dll` from build 2000935). Re-check these after a CS2 or SwiftlyS2 update.
+
+- SwiftlyS2 filters the blocked bits after the game's `CheckTransmit`, and runs `NextTick` work at the end of its `GameFrame` hook. The engine sends snapshots afterwards (`CNetworkGameServer::PrepareSendClientUpdatesAsync`), so a recalculation queued during a frame applies to that frame's snapshot. Work queued while that queue runs waits for the next frame, and timers run after the queue, so changes made there reach the snapshot before a queued recalculation sees them. Deleting an entity clears its bits for every viewer before the managed callback.
+- Weapons are equipped with `FollowEntity(owner)`, so they are scene-graph children of the pawn. Every `SetParent` notifies the entity system, which SwiftlyS2 forwards as `OnEntityParentChanged`. On the client a parent change only marks the hierarchy dirty, so a weapon whose pawn is not sent has no parent to follow. That was the cause of weapons floating where a hidden player was last seen.
+- CS2 has no `spec_target_updated` or `spec_mode_updated` event; the server never fires them. Spectator camera changes therefore cannot be followed by events.
+- `CPlayer_ObserverServices::IsValidObserverTarget` accepts a dying or dead pawn until `m_flDeathTime + 6.0`, and rejects the observer's own pawn, `EF_NODRAW` pawns and `LIFE_RESPAWNABLE` pawns. The observer think moves a spectator off a target once it is invalid. The default death camera (`spec_freeze_deathanim_time` 0.8 + `spec_freeze_traveltime` 0.3 + `spec_freeze_time` 3.0) ends within that window.
+
+Live checks still required:
+
+1. Hide all/team/enemy, then give a hidden player weapons (buy, `!guns`, pickup) and drop them. Weapons stay with the hidden player and dropped weapons appear.
+2. Store cosmetics, the warden coin and other attached props disappear with their player.
+3. Die while players are hidden, watch the death camera, cycle spectator targets and modes, then respawn (`!af`). The camera keeps working and living players stay visible while dead.
+4. With corpse hiding on, spectate a player who dies, and press next/previous within 6 seconds of other deaths. No client error, and corpses disappear about 6.5 seconds after death.
+5. Restart rounds, change maps, swap teams (`!swap @me`), reconnect into a reused slot and reload HidePlayers mid-round. Hiding resumes, and disabling or unloading releases every block.
+
 ## Implemented features
 
 - [x] Hide preferences
@@ -135,7 +155,7 @@ Publishing writes `build/publish/HidePlayers/` and `build/HidePlayers.zip`. The 
 - [x] SwiftlyS2 component menu (`Core.Menu`) with a configurable look and keys
 - [x] Shared API for temporary activity overrides and custom menus
 - [x] Editable Panorama XML/CSS menu with configurable renderer and layout path
-- [ ] Hiding the weapons of hidden players (to be confirmed on a live server)
+- [x] Hiding the weapons and attachments of hidden players
 
 Pre-release checks that need a running server and client are listed in [docs/remaining-tests.md](docs/remaining-tests.md).
 

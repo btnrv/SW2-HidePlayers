@@ -12,6 +12,7 @@ namespace HidePlayers;
 public sealed partial class HidePlayers : BasePlugin
 {
     private readonly HidePlayersApi _api;
+    private readonly VisibilityCore _visibility;
     private ServiceProvider? _services;
     private IDisposable? _settingsSubscription;
     private volatile PluginSettings _settings = new();
@@ -20,6 +21,7 @@ public sealed partial class HidePlayers : BasePlugin
     public HidePlayers(ISwiftlyCore core) : base(core)
     {
         _api = new HidePlayersApi(this);
+        _visibility = new VisibilityCore(this);
     }
 
     /// <summary>The latest valid settings. An invalid edit of settings.jsonc keeps the previous values.</summary>
@@ -46,6 +48,7 @@ public sealed partial class HidePlayers : BasePlugin
 
         _active = true;
         RegisterCommands();
+        HookVisibilityEvents();
         SeedSessions();
     }
 
@@ -69,7 +72,7 @@ public sealed partial class HidePlayers : BasePlugin
         _active = false;
         try
         {
-            ReleaseTransmitBlocks();
+            _visibility.Stop();
             ReleasePanorama();
             DisposeFrameworkMenu();
         }
