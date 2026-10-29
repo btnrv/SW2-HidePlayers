@@ -55,7 +55,6 @@ public sealed partial class HidePlayers
 
     private void ForgetViewer(int slot)
     {
-        ClosePanoramaMenu(slot);
         // The engine clears a viewer's blocked entities on disconnect, so there is nothing to unblock.
         _sessions.Remove(slot);
         _visibility.ForgetViewer(slot);
@@ -64,7 +63,6 @@ public sealed partial class HidePlayers
     private void ClearPlayerState()
     {
         _sessions.Clear();
-        _panoramaOpen.Clear();
     }
 
     private void ChangePreferences(IPlayer player, HidePreferences preferences)

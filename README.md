@@ -13,7 +13,7 @@ Plugin to let players hide other players, and corpses, with their choice saved a
 2. Install the Cookies plugin the same way. Cookies reads a database connection named `cookies` from SwiftlyS2's `database.jsonc` and falls back to the default connection if that name is missing. It supports SQLite, MySQL/MariaDB and PostgreSQL. Credentials belong to the server configuration, never to HidePlayers.
 3. Restart the server. Installing or updating Cookies, or any plugin's exported contract (including `HidePlayers.Contract.dll`), needs a full restart, not a plugin reload.
 4. Start the plugin to generate `configs/plugins/HidePlayers/settings.jsonc` under SwiftlyS2's configuration root. Keys added by later versions are inserted into an existing file with their defaults.
-5. Join the server and enter `!hide` to open the menu.
+5. Join the server and enter `!hidemenu` to open the native menu, or `!hide` to toggle player hiding.
 
 ## Saving choices
 
@@ -30,8 +30,8 @@ These examples use the default command names. The chat prefix comes from the ser
 
 | Player console | Chat example | Action |
 | --- | --- | --- |
-| - | `!hide` / `!hidemodels` | Open the menu |
-| `sw_hide` | - | Toggle player hiding off or back to your last selected mode |
+| `sw_hidemenu` | `!hidemenu` | Open the native SwiftlyS2 menu |
+| `sw_hide` / `sw_hidemodels` | `!hide` / `!hidemodels` | Toggle player hiding off or back to your last selected mode |
 | `sw_hide off` | `!hide off` | Show living players |
 | `sw_hide all` | `!hide all` | Hide all other living players |
 | `sw_hide team` | `!hide teammates` | Hide living teammates |
@@ -40,11 +40,11 @@ These examples use the default command names. The chat prefix comes from the ser
 | `sw_hide dead off` | `!hide dead off` | Show corpses |
 | `sw_hide dead toggle` | `!hide dead toggle` | Toggle corpse visibility |
 
-The console toggle remembers your last All/Team/Enemy choice across reconnects. It uses All if you have never selected a mode. Corpse hiding stays separate. These commands cannot be used from the server console.
+The toggle remembers your last All/Team/Enemy choice across reconnects. It uses All if you have never selected a mode. Corpse hiding stays separate. Chat and player-console commands behave identically. These commands cannot be used from the server console.
 
-You can use `teammates` instead of `team`, and `enemies` instead of `enemy`. If another plugin provides a custom menu, `!hide` opens that instead.
+You can use `teammates` instead of `team`, and `enemies` instead of `enemy`. `!hidemenu` always opens HidePlayers' native menu. Phone's embedded Hide settings remain available independently.
 
-To restrict the commands, set `MenuCommand.Permission`, or map both `hide` and `sw_hide` (and each alias) in SwiftlyS2's `command_overrides.jsonc`.
+To restrict the commands, set `MenuCommand.Permission`, or map `hide`, `sw_hide`, `hidemenu`, `sw_hidemenu` and each alias in SwiftlyS2's `command_overrides.jsonc`.
 
 ## What is hidden
 
@@ -76,9 +76,7 @@ Those bits are per viewer and shared with other plugins that block the same enti
       "Aliases": ["hidemodels"],
       "Permission": ""
     },
-    "MenuRenderer": "Framework",
-    "PanoramaLayout": "panorama/layout/custom_game/hideplayers/hideplayers.xml",
-    "Prefix": "[gold][HidePlayers][default] "
+    "Prefix": "[darkblue][HidePlayers][default]"
   }
 }
 ```
@@ -86,17 +84,15 @@ Those bits are per viewer and shared with other plugins that block the same enti
 | Setting | What it does |
 | --- | --- |
 | `DefaultPreferences` | Settings for players who have no saved choices. Modes: `Off`, `All`, `Teammates`, `Enemies`. |
-| `MenuCommand.Name`, `MenuCommand.Aliases` | The command and its aliases. They are registered as `sw_<name>` and as chat commands. Names must be non-empty, contain no spaces and be distinct. |
+| `MenuCommand.Name`, `MenuCommand.Aliases` | The toggle/settings command and its aliases. The legacy key name is retained for existing configurations. They are registered as `sw_<name>` and as chat commands. Names must be non-empty, contain no spaces, be distinct and cannot be `hidemenu`, which is reserved for the native menu. |
 | `MenuCommand.Permission` | Permission needed to use the menu or commands. Leave empty to allow everyone. |
-| `MenuRenderer` | `Framework` for the SwiftlyS2 component menu, or `Panorama` for the XML/CSS menu. |
-| `PanoramaLayout` | Resource path of the Panorama layout in your addon. Required when `MenuRenderer` is `Panorama`. |
 | `Prefix` | Text shown before the plugin's chat replies. It uses SwiftlyS2's bracket colour tokens such as `[gold]` and `[default]`. The `{Gold}` brace style is not supported. |
 
-An invalid setting stops the plugin from loading, and the server log names the setting. The prefix and default choices apply as soon as the file changes. Command names, aliases, permission and `MenuRenderer` apply when the plugin is reloaded.
+An invalid setting stops the plugin from loading, and the server log names the setting. Default choices apply as soon as the file changes. Apply prefix, command name, alias and permission changes with a server restart. The removed `MenuRenderer` and `PanoramaLayout` keys are ignored in existing configurations and can be deleted.
 
 ## Menus
 
-**Framework menu.** The default menu is a SwiftlyS2 `Core.Menu` menu with the id `hideplayers.menu`. Its look and keys come from SwiftlyS2's `configs/menus/menus.jsonc`, not from HidePlayers. For example, to draw it as chat lines and change its keys:
+`!hidemenu` opens a SwiftlyS2 `Core.Menu` menu with the id `hideplayers.menu`. Its look and keys come from SwiftlyS2's `configs/menus/menus.jsonc`. For example, to draw it as chat lines and change its keys:
 
 ```jsonc
 {
@@ -108,19 +104,15 @@ An invalid setting stops the plugin from loading, and the server log names the s
 
 The selected mode is marked in the menu, and the menu updates if your choice changes while it is open. The classic `Menu` section in `core.jsonc` does not apply to it.
 
-**Panorama menu.** Set `MenuRenderer` to `Panorama` to use the included XML/CSS menu. Compile the files in `resources/panorama-addon/` into your addon and deliver the addon to players first. See the [Panorama setup guide](docs/custom-menu.md#enable-the-bundled-panorama-menu).
+The menu shows your choices and tells you when another plugin overrides them. HidePlayers no longer ships or creates a standalone Panorama HUD. Remove old `resources/panorama-addon/` files when upgrading an existing installation. Phone keeps its embedded Hide page; its standalone Hide HUD has also been removed.
 
-Both menus show your choices and tell you when another plugin overrides them.
+## Shared API
 
-## Shared API and custom menus
-
-Other plugins can read a player's settings, temporarily change what they see, or provide a custom menu. The API key is `HidePlayers.API.v1`.
+Other plugins can read a player's settings or temporarily change what they see. The API key is `HidePlayers.API.v1`.
 
 - All calls run on the game thread, and a call from another thread throws `InvalidOperationException`.
 - Overrides are session-only. They are never saved, and they are cleared when the player disconnects and when the map unloads.
-- Only one menu provider can register at a time, and it must unregister when its plugin unloads.
-
-See the [integration guide](docs/custom-menu.md#consume-the-shared-api) for the API and examples.
+- The old menu-provider registration methods remain for binary compatibility, but commands no longer invoke providers. Consumers should expose their own entrypoints. The exported API signatures are unchanged.
 
 ## Building
 
@@ -153,11 +145,10 @@ Live checks still required:
 - [x] Menu with all/team/enemy/off choices and a separate corpse choice
 - [x] Persistence across sessions through the Cookies plugin
 - [x] SwiftlyS2 component menu (`Core.Menu`) with a configurable look and keys
-- [x] Shared API for temporary activity overrides and custom menus
-- [x] Editable Panorama XML/CSS menu with configurable renderer and layout path
+- [x] Shared API for temporary activity overrides and embedded settings such as Phone
 - [x] Hiding the weapons and attachments of hidden players
 
-Pre-release checks that need a running server and client are listed in [docs/remaining-tests.md](docs/remaining-tests.md).
+Also check `!hide`/`sw_hide` toggle parity, remembered modes, corpse independence, `!hidemenu` with Phone loaded, Phone's embedded choices, and native menu cleanup on disconnect/map change/unload on a running server.
 
 ## Acknowledgements and license
 

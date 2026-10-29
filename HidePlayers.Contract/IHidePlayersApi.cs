@@ -48,8 +48,8 @@ public interface IHidePlayersApi
     bool ClearOverride(int playerId);
 
     /// <summary>
-    /// Registers the menu that bare chat hide commands open instead of the built-in menus. Only one provider can be
-    /// registered; the call returns false while another is registered. Registering closes the menus HidePlayers has open.
+    /// Legacy registration retained for compatibility with existing consumers. Only one provider can be registered.
+    /// Commands no longer invoke providers: hide toggles preferences and hidemenu always opens the native menu.
     /// </summary>
     bool RegisterMenuProvider(IHidePlayersMenuProvider provider);
 
@@ -57,7 +57,7 @@ public interface IHidePlayersApi
     bool UnregisterMenuProvider(IHidePlayersMenuProvider provider);
 }
 
-/// <summary>Lets a plugin supply its own menu, including a SwiftlyS2 Panorama custom HUD.</summary>
+/// <summary>Legacy menu-provider contract. Current HidePlayers commands do not invoke custom providers.</summary>
 public interface IHidePlayersMenuProvider
 {
     /// <summary>Opens the menu for the human player in this slot. Called on the game thread.</summary>

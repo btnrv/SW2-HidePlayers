@@ -5,8 +5,6 @@ namespace HidePlayers;
 
 public sealed partial class HidePlayers
 {
-    private const string ConsolePrefix = "sw_";
-
     // The command name and aliases come from the settings, so they are registered here and not with [Command].
     private void RegisterCommands()
     {
@@ -18,23 +16,28 @@ public sealed partial class HidePlayers
         {
             Core.Command.RegisterCommandAlias(command.Name, alias, registerRaw: false);
         }
+
+        Core.Command.RegisterCommand(
+            "hidemenu", OnHideMenuCommand, registerRaw: false, permission: command.Permission,
+            helpText: "Open the player and corpse visibility menu.");
     }
 
-    // CommandContext.Reply in SwiftlyS2 makes the same test: the sw_ prefix means the console, anything else means
-    // chat. That holds for commands registered with registerRaw: false, as here.
-    private static bool IsChatInvocation(ICommandContext context) => context.Prefix != ConsolePrefix;
+    private void OnHideMenuCommand(ICommandContext context)
+    {
+        if (!context.IsSentByPlayer || context.Sender is not { IsFakeClient: false } player || EnsureSession(player) is null)
+        {
+            context.Reply(Core.Localizer.Prefixed("command.player_only", Settings.Prefix));
+            return;
+        }
+
+        OpenFrameworkMenu(player);
+    }
 
     private void OnHideCommand(ICommandContext context)
     {
         if (!context.IsSentByPlayer || context.Sender is not { IsFakeClient: false } player || EnsureSession(player) is not { } session)
         {
-            context.Reply(Settings.Prefix + Core.Localizer["command.player_only"]);
-            return;
-        }
-
-        if (context.Args.Length == 0 && IsChatInvocation(context))
-        {
-            OpenMenu(player);
+            context.Reply(Core.Localizer.Prefixed("command.player_only", Settings.Prefix));
             return;
         }
 
@@ -46,12 +49,12 @@ public sealed partial class HidePlayers
         }
         else if (!HideCommandParser.TryParse(context.Args, session.Preferences, out selected))
         {
-            context.Reply(Settings.Prefix + localizer["command.usage", context.Prefix, context.CommandName]);
+            context.Reply(localizer.Prefixed("command.usage", Settings.Prefix, context.Prefix, context.CommandName));
             return;
         }
 
         ChangePreferences(player, selected);
         var status = localizer[selected.HideDead ? "status.on" : "status.off"];
-        context.Reply(Settings.Prefix + localizer["command.applied", localizer[$"menu.mode.{selected.Mode}"], status]);
+        context.Reply(localizer.Prefixed("command.applied", Settings.Prefix, localizer[$"menu.mode.{selected.Mode}"], status));
     }
 }

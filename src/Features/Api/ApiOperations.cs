@@ -38,7 +38,6 @@ public sealed partial class HidePlayers
         }
 
         _menuProvider = provider;
-        CloseMenus();
         return true;
     }
 

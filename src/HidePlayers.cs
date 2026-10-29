@@ -44,7 +44,11 @@ public sealed partial class HidePlayers : BasePlugin
         // fires for valid files, so Settings never exposes a half-valid edit.
         var options = _services.GetRequiredService<IOptionsMonitor<PluginSettings>>();
         _settings = options.CurrentValue;
-        _settingsSubscription = options.OnChange(changed => _settings = changed);
+        _settingsSubscription = options.OnChange(changed =>
+        {
+            changed.Prefix = _settings.Prefix;
+            _settings = changed;
+        });
 
         _active = true;
         RegisterCommands();
@@ -73,7 +77,6 @@ public sealed partial class HidePlayers : BasePlugin
         try
         {
             _visibility.Stop();
-            ReleasePanorama();
             DisposeFrameworkMenu();
         }
         finally

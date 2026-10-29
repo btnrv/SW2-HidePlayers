@@ -15,7 +15,6 @@ public sealed partial class HidePlayers
 
     private void OpenFrameworkMenu(IPlayer player)
     {
-        ClosePanoramaMenu(player.PlayerID);
         _frameworkMenu ??= BuildFrameworkMenu();
         _frameworkMenu.Open(player);
     }

@@ -1,6 +1,5 @@
 {
   "menu.title": "Hide Players",
-  "menu.close": "Close",
   "menu.mode.Off": "Show all players",
   "menu.mode.All": "Hide all players",
   "menu.mode.Teammates": "Hide teammates",
@@ -11,7 +10,7 @@
   "menu.override": "Activity override active",
   "status.on": "on",
   "status.off": "off",
-  "command.player_only": "[white]This command is available to players only.",
-  "command.usage": "[white]Usage: [green]{0}{1} (off|all|team|enemies)[white] or [green]{0}{1} dead (on|off|toggle)[white].",
-  "command.applied": "[white]Selected: [green]{0}[white]. Hide corpses: [green]{1}[white]."
+  "command.player_only": "[default]This command is available to players only.",
+  "command.usage": "[default]You used [gold]{0}{1}[default] [darkred]incorrectly[default]. Correct usage: [green]{0}{1} (off|all|team|enemies)[default] or [green]{0}{1} dead (on|off|toggle)[default]",
+  "command.applied": "[default]Selected: [blue]{0}[default]. Hide corpses: [blue]{1}[default]."
 }

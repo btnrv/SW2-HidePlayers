@@ -69,7 +69,7 @@ public sealed partial class HidePlayers : IVisibilityEngine
             session.Override = null;
         }
 
-        ForgetPanoramaEntity();
+        CloseMenus();
     }
 
     private void RecalculateVisibility()
