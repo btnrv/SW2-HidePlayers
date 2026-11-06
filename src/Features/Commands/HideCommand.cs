@@ -49,12 +49,13 @@ public sealed partial class HidePlayers
         }
         else if (!HideCommandParser.TryParse(context.Args, session.Preferences, out selected))
         {
-            context.Reply(localizer.Prefixed("command.usage", Settings.Prefix, context.Prefix, context.CommandName));
+            // Reply goes to the console when the command is bound from there; always answer in chat.
+            player.SendChat(localizer.Prefixed("command.usage", Settings.Prefix, context.Prefix, context.CommandName));
             return;
         }
 
         ChangePreferences(player, selected);
         var status = localizer[selected.HideDead ? "status.on" : "status.off"];
-        context.Reply(localizer.Prefixed("command.applied", Settings.Prefix, localizer[$"menu.mode.{selected.Mode}"], status));
+        player.SendChat(localizer.Prefixed("command.applied", Settings.Prefix, localizer[$"menu.mode.{selected.Mode}"], status));
     }
 }
