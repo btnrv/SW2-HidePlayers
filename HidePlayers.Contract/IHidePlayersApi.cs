@@ -6,7 +6,10 @@ public enum HideMode
     Off,
     All,
     Teammates,
-    Enemies
+    Enemies,
+
+    /// <summary>Hides living Counter-Terrorists, whichever team the viewer is on.</summary>
+    CounterTerrorists
 }
 
 /// <summary>A viewer's personal choices: which living players to hide and whether to hide corpses.</summary>

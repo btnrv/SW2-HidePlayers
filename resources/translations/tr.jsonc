@@ -4,6 +4,7 @@
   "menu.mode.All": "Tüm oyuncuları gizle",
   "menu.mode.Teammates": "Takım arkadaşlarını gizle",
   "menu.mode.Enemies": "Rakipleri gizle",
+  "menu.mode.CounterTerrorists": "CT'leri gizle",
   "menu.selected": "✔ {0}",
   "menu.hide_dead": "Cesetleri gizle",
   "menu.hide_dead_state": "{0}: {1}",
@@ -11,6 +12,6 @@
   "status.on": "açık",
   "status.off": "kapalı",
   "command.player_only": "[default]Bu komutu yalnızca oyuncular kullanabilir.",
-  "command.usage": "[gold]{0}{1}[default] komutunu [darkred]hatalı[default] kullandın. Doğru kullanım: [green]{0}{1} (off|all|team|enemies)[default] veya [green]{0}{1} dead (on|off|toggle)[default]",
+  "command.usage": "[gold]{0}{1}[default] komutunu [darkred]hatalı[default] kullandın. Doğru kullanım: [green]{0}{1} (off|all|team|enemies|ct)[default] veya [green]{0}{1} dead (on|off|toggle)[default]",
   "command.applied": "[default]Seçilen: [blue]{0}[default]. Ceset gizleme: [blue]{1}[default]."
 }

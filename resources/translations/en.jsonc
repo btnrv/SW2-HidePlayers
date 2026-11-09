@@ -4,6 +4,7 @@
   "menu.mode.All": "Hide all players",
   "menu.mode.Teammates": "Hide teammates",
   "menu.mode.Enemies": "Hide enemies",
+  "menu.mode.CounterTerrorists": "Hide CTs",
   "menu.selected": "✔ {0}",
   "menu.hide_dead": "Hide corpses",
   "menu.hide_dead_state": "{0}: {1}",
@@ -11,6 +12,6 @@
   "status.on": "on",
   "status.off": "off",
   "command.player_only": "[default]This command is available to players only.",
-  "command.usage": "[default]You used [gold]{0}{1}[default] [darkred]incorrectly[default]. Correct usage: [green]{0}{1} (off|all|team|enemies)[default] or [green]{0}{1} dead (on|off|toggle)[default]",
+  "command.usage": "[default]You used [gold]{0}{1}[default] [darkred]incorrectly[default]. Correct usage: [green]{0}{1} (off|all|team|enemies|ct)[default] or [green]{0}{1} dead (on|off|toggle)[default]",
   "command.applied": "[default]Selected: [blue]{0}[default]. Hide corpses: [blue]{1}[default]."
 }

@@ -17,7 +17,7 @@ Plugin to let players hide other players, and corpses, with their choice saved a
 
 ## Saving choices
 
-HidePlayers keeps each player's choice in the Cookies plugin, under the cookie key `hideplayers.preferences`. The value is a short text string, `1|<Mode>|<0|1>|<LastActiveMode>`.
+HidePlayers keeps each player's choice in the Cookies plugin, under the cookie key `hideplayers.preferences`. The value is a short text string, `2|<Mode>|<0|1>|<LastActiveMode>`. Version 1 values are ignored, so those players start from the defaults again.
 
 - A choice is saved when the player is Steam-authorized. A choice made before authorization is written as soon as they are authorized.
 - Choices are loaded in the background after authorization, so they can appear a moment after the player joins.
@@ -36,11 +36,12 @@ These examples use the default command names. The chat prefix comes from the ser
 | `sw_hide all` | `!hide all` | Hide all other living players |
 | `sw_hide team` | `!hide teammates` | Hide living teammates |
 | `sw_hide enemy` | `!hide enemies` | Hide living enemies |
+| `sw_hide ct` | `!hide ct` | Hide living Counter-Terrorists |
 | `sw_hide dead on` | `!hide dead on` | Hide corpses |
 | `sw_hide dead off` | `!hide dead off` | Show corpses |
 | `sw_hide dead toggle` | `!hide dead toggle` | Toggle corpse visibility |
 
-The toggle remembers your last All/Team/Enemy choice across reconnects. It uses All if you have never selected a mode. Corpse hiding stays separate. Chat and player-console commands behave identically. These commands cannot be used from the server console.
+The toggle remembers your last All/Team/Enemy/CT choice across reconnects. It uses CT if you have never selected a mode, unless `DefaultPreferences.Mode` names another mode. Corpse hiding stays separate. Chat and player-console commands behave identically. These commands cannot be used from the server console.
 
 You can use `teammates` instead of `team`, and `enemies` instead of `enemy`. `!hidemenu` always opens HidePlayers' native menu. Phone's embedded Hide settings remain available independently.
 
@@ -83,7 +84,7 @@ Those bits are per viewer and shared with other plugins that block the same enti
 
 | Setting | What it does |
 | --- | --- |
-| `DefaultPreferences` | Settings for players who have no saved choices. Modes: `Off`, `All`, `Teammates`, `Enemies`. |
+| `DefaultPreferences` | Settings for players who have no saved choices. Modes: `Off`, `All`, `Teammates`, `Enemies`, `CounterTerrorists`. |
 | `MenuCommand.Name`, `MenuCommand.Aliases` | The toggle/settings command and its aliases. The legacy key name is retained for existing configurations. They are registered as `sw_<name>` and as chat commands. Names must be non-empty, contain no spaces, be distinct and cannot be `hidemenu`, which is reserved for the native menu. |
 | `MenuCommand.Permission` | Permission needed to use the menu or commands. Leave empty to allow everyone. |
 | `Prefix` | Text shown before the plugin's chat replies. It uses SwiftlyS2's bracket colour tokens such as `[gold]` and `[default]`. The `{Gold}` brace style is not supported. |

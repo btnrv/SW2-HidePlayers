@@ -10,7 +10,7 @@ internal sealed class PlayerSession(ulong sessionId, HidePreferences defaults)
     public HidePreferences Preferences { get; private set; } = defaults;
 
     /// <summary>The last mode other than Off, so that toggling Off restores it.</summary>
-    public HideMode LastActiveMode { get; private set; } = defaults.Mode == HideMode.Off ? HideMode.All : defaults.Mode;
+    public HideMode LastActiveMode { get; private set; } = defaults.Mode == HideMode.Off ? PreferenceCodec.DefaultToggleMode : defaults.Mode;
 
     /// <summary>Counts the player's own changes. A stored value that was read before a change is dropped.</summary>
     public long Revision { get; private set; }

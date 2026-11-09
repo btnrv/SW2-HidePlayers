@@ -5,7 +5,11 @@ namespace HidePlayers;
 /// <summary>Converts preferences to the string that the Cookies plugin stores, and back.</summary>
 internal static class PreferenceCodec
 {
-    private const string Version = "1";
+    /// <summary>The mode the toggle turns on for a player who has never selected one.</summary>
+    public const HideMode DefaultToggleMode = HideMode.CounterTerrorists;
+
+    // Version 2 made CounterTerrorists the toggle default; version 1 values, which remembered All, count as absent.
+    private const string Version = "2";
     private const char Separator = '|';
 
     public static string Encode(HidePreferences preferences, HideMode lastActiveMode) =>
@@ -15,7 +19,7 @@ internal static class PreferenceCodec
     public static bool TryParse(string? value, out HidePreferences preferences, out HideMode lastActiveMode)
     {
         preferences = default;
-        lastActiveMode = HideMode.All;
+        lastActiveMode = DefaultToggleMode;
         if (string.IsNullOrEmpty(value))
         {
             return false;

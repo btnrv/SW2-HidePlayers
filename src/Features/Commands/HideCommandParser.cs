@@ -3,7 +3,7 @@ using HidePlayers.Contract;
 namespace HidePlayers;
 
 /// <summary>
-/// Reads the arguments of the hide command: a mode (off, all, team or teammates, enemy or enemies),
+/// Reads the arguments of the hide command: a mode (off, all, team or teammates, enemy or enemies, ct),
 /// or "dead" followed by on, off or toggle.
 /// </summary>
 internal static class HideCommandParser
@@ -19,6 +19,7 @@ internal static class HideCommandParser
                 "all" => HideMode.All,
                 "team" or "teammates" => HideMode.Teammates,
                 "enemy" or "enemies" => HideMode.Enemies,
+                "ct" => HideMode.CounterTerrorists,
                 _ => null
             };
             if (mode is not { } selected)

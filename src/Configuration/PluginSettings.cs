@@ -7,7 +7,7 @@ namespace HidePlayers;
 
 public sealed class PluginSettings
 {
-    [Description("Choices a player starts with until their saved choices load. Mode is Off, All, Teammates or Enemies.")]
+    [Description("Choices a player starts with until their saved choices load. Mode is Off, All, Teammates, Enemies or CounterTerrorists.")]
     public DefaultPreferencesSettings DefaultPreferences { get; set; } = new();
 
     [Description("Command that toggles hiding or changes choices. The legacy MenuCommand key is retained for existing configurations. Names and permissions apply when the plugin loads; hidemenu opens the native menu with the same permission.")]
@@ -42,7 +42,7 @@ public sealed class PluginSettingsValidator : IValidateOptions<PluginSettings>
         var failures = new List<string>();
         if (!Enum.IsDefined(options.DefaultPreferences.Mode))
         {
-            failures.Add("DefaultPreferences.Mode must be Off, All, Teammates or Enemies.");
+            failures.Add("DefaultPreferences.Mode must be Off, All, Teammates, Enemies or CounterTerrorists.");
         }
 
         var commandNames = new List<string> { options.MenuCommand.Name };

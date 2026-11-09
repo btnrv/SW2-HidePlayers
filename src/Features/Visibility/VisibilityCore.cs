@@ -291,6 +291,7 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
             HideMode.All => true,
             HideMode.Teammates => viewer.Team == pawn.Team,
             HideMode.Enemies => viewer.Team != pawn.Team,
+            HideMode.CounterTerrorists => pawn.Team == Team.CT,
             _ => false
         };
         return hidden ? Always : Never;
