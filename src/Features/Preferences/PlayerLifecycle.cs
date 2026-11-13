@@ -12,7 +12,7 @@ public sealed partial class HidePlayers
             return;
         }
 
-        if (EnsureSession(player) is { } session)
+        if (EnsureSession(player, connecting: true) is { } session)
         {
             BeginPreferenceLoad(player, session);
         }

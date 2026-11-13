@@ -17,8 +17,11 @@ public sealed partial class HidePlayers
         return new HidePreferences(defaults.Mode, defaults.HideDead);
     }
 
-    /// <summary>Returns the session of a connected human, creating it on first use. Bots have none.</summary>
-    private PlayerSession? EnsureSession(IPlayer player)
+    /// <summary>
+    /// Returns the session of a connected human, creating it on first use. Bots have none. <paramref name="connecting"/>
+    /// says the player is just being put in the server, so their client has not been sent anything yet.
+    /// </summary>
+    private PlayerSession? EnsureSession(IPlayer player, bool connecting = false)
     {
         if (player.IsFakeClient)
         {
@@ -38,7 +41,7 @@ public sealed partial class HidePlayers
 
         var session = new PlayerSession(player.SessionId, DefaultPreferences());
         _sessions[slot] = session;
-        _visibility.AddViewer(slot);
+        _visibility.AddViewer(slot, connecting);
         return session;
     }
 

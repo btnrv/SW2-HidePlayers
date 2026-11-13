@@ -44,6 +44,12 @@ internal interface IVisibilityEngine
 
     /// <summary>Runs <see cref="VisibilityCore.Recalculate"/> once at this game time, replacing an earlier request.</summary>
     void RecalculateAt(float time);
+
+    /// <summary>
+    /// Runs <see cref="VisibilityCore.CheckSnapshot"/> after this frame's other work, just before its snapshot. A request
+    /// made from inside that check runs in the next frame.
+    /// </summary>
+    void CheckBeforeSnapshot();
 }
 
 /// <summary>
@@ -51,6 +57,13 @@ internal interface IVisibilityEngine
 /// at the end of the frame after state changes; attachments, spawns and deaths are also applied at once, because a
 /// change made after this frame's recalculation (from a timer or a later NextTick) still reaches this frame's snapshot.
 /// </summary>
+/// <remarks>
+/// A client builds a death ragdoll when it is sent a pawn whose ragdoll flag is set, and a pawn it stops receiving keeps
+/// that ragdoll while dormant. If its next update carries the respawn together with a later change to another cloth
+/// model, the client crashes. So the snapshot of every frame with a change records which viewers were sent which pawns
+/// while not alive, and when such a pawn respawns those viewers receive it in that frame's snapshot whatever the policy
+/// says. The policy applies again from the next frame.
+/// </remarks>
 internal sealed class VisibilityCore(IVisibilityEngine engine)
 {
     public const uint NoController = uint.MaxValue;
@@ -73,6 +86,15 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
         // What the client needs, as of the last recalculation. No event reports camera changes.
         public readonly HashSet<int> Camera = [];
 
+        // The pawns whose death ragdoll the client may hold: a snapshot sent them while they were not alive.
+        public readonly HashSet<int> Ragdolls = [];
+
+        // Pawns from Ragdolls that respawned in this frame. They are sent until this frame's snapshot is out.
+        public readonly HashSet<int> PassThrough = [];
+
+        // Nothing is known yet about what the client was sent, so every pawn not alive counts as sent.
+        public bool Untracked;
+
         public bool Living;
         public bool ReleasePending;
         public float ReleasedAt;
@@ -83,10 +105,15 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
     private readonly Dictionary<int, List<int>> _trees = [];
     private bool _running = true;
     private bool _queued;
+    private bool _checkQueued;
 
-    public void AddViewer(int slot)
+    /// <summary>
+    /// Starts deciding for a viewer. <paramref name="tracked"/> says the client has not been sent anything yet; without
+    /// it, as for players already connected when the plugin loads, the client may hold the ragdoll of any pawn not alive.
+    /// </summary>
+    public void AddViewer(int slot, bool tracked)
     {
-        _viewers.TryAdd(slot, new Viewer());
+        _viewers.TryAdd(slot, new Viewer { Untracked = !tracked });
         RequestRecalculation();
     }
 
@@ -116,6 +143,18 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
             _queued = true;
             engine.RecalculateAtEndOfFrame();
         }
+
+        // Every caller reports a change, such as a death or a release, that this frame's snapshot can carry.
+        RequestSnapshotCheck();
+    }
+
+    private void RequestSnapshotCheck()
+    {
+        if (!_checkQueued)
+        {
+            _checkQueued = true;
+            engine.CheckBeforeSnapshot();
+        }
     }
 
     /// <summary>
@@ -135,13 +174,23 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
         RequestRecalculation();
     }
 
-    /// <summary>Shows a pawn that came alive to every viewer who is not alive, since they can now spectate it.</summary>
+    /// <summary>
+    /// Shows a pawn that came alive to every viewer who is not alive, since they can now spectate it. A viewer whose
+    /// client may hold the pawn's death ragdoll is sent it in this frame's snapshot, so that the respawn reaches that
+    /// client before any later model change, and no recalculation hides it again before that snapshot.
+    /// </summary>
     public void ShowSpawnedPawn(int pawn)
     {
         _trees.Clear();
         foreach (var (slot, viewer) in _viewers)
         {
-            if (!viewer.Living && viewer.Hidden.Remove(pawn))
+            var passThrough = viewer.Ragdolls.Remove(pawn) || viewer.Untracked;
+            if (passThrough)
+            {
+                viewer.PassThrough.Add(pawn);
+            }
+
+            if ((passThrough || !viewer.Living) && viewer.Hidden.Remove(pawn))
             {
                 SetTree(slot, viewer, pawn, false);
             }
@@ -189,6 +238,8 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
         {
             viewer.Owned.Remove(entity);
             viewer.Hidden.Remove(entity);
+            viewer.Ragdolls.Remove(entity);
+            viewer.PassThrough.Remove(entity);
 
             // A living viewer who lost their pawn or view entity sees through another camera from now on.
             if (viewer.Living && viewer.Camera.Contains(entity))
@@ -210,6 +261,8 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
             return;
         }
 
+        // A recalculation woken by a timer has no other request behind it.
+        RequestSnapshotCheck();
         try
         {
             var now = engine.Now;
@@ -231,7 +284,12 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
                 foreach (var pawn in _pawns)
                 {
                     var from = known ? HiddenFrom(info, viewer.Living, settled, pawn, settle) : Never;
-                    if (from != Never && viewer.Camera.Contains(pawn.Index))
+                    if (viewer.PassThrough.Contains(pawn.Index))
+                    {
+                        // The snapshot check asks for the recalculation that hides it in the next frame.
+                        from = Never;
+                    }
+                    else if (from != Never && viewer.Camera.Contains(pawn.Index))
                     {
                         // A spectator camera leaves a corpse without an event, so look again in a second.
                         wake = MathF.Min(wake, MathF.Max(from, now + 1f));
@@ -265,6 +323,46 @@ internal sealed class VisibilityCore(IVisibilityEngine engine)
             }
 
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Runs just before the snapshot of a frame with a change. Records, for each viewer, the pawns this snapshot sends
+    /// while they are not alive, which is when a client can build a death ragdoll, and ends this frame's pass-throughs.
+    /// </summary>
+    public void CheckSnapshot()
+    {
+        _checkQueued = false;
+        var passedThrough = false;
+        foreach (var viewer in _viewers.Values)
+        {
+            passedThrough |= viewer.PassThrough.Count > 0;
+            viewer.PassThrough.Clear();
+        }
+
+        if (_running && _viewers.Count > 0)
+        {
+            engine.ReadPawns(_pawns);
+            foreach (var (slot, viewer) in _viewers)
+            {
+                foreach (var pawn in _pawns)
+                {
+                    // Not alive also covers pawns without a ragdoll, which only costs them a pass-through at respawn.
+                    if (!pawn.Alive && !viewer.Ragdolls.Contains(pawn.Index) && (viewer.Untracked
+                        || (!viewer.Owned.Contains(pawn.Index) && !engine.IsBlocked(slot, pawn.Index))))
+                    {
+                        viewer.Ragdolls.Add(pawn.Index);
+                    }
+                }
+
+                viewer.Untracked = false;
+            }
+        }
+
+        if (passedThrough)
+        {
+            // Queued from inside the check, so the policy applies again in the next frame.
+            RequestRecalculation();
         }
     }
 

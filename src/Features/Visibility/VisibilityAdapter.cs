@@ -7,7 +7,8 @@ using SwiftlyS2.Shared.SchemaDefinitions;
 namespace HidePlayers;
 
 // The SwiftlyS2 side of VisibilityCore: the events that drive it and the engine state it reads and writes. Hiding changes
-// only on these events and on corpse timers; there is no per-tick work. CS2 fires no spec_target_updated or
+// only on these events and on corpse timers, and a frame with a change ends with one snapshot check (one more frame after
+// a respawn pass-through); there is no per-tick work. CS2 fires no spec_target_updated or
 // spec_mode_updated (server.dll has no such event names), so spectator cameras are covered by the policy instead.
 public sealed partial class HidePlayers : IVisibilityEngine
 {
@@ -82,6 +83,19 @@ public sealed partial class HidePlayers : IVisibilityEngine
         finally
         {
             Core.Profiler.StopRecording("HidePlayers.Visibility");
+        }
+    }
+
+    private void CheckVisibilitySnapshot()
+    {
+        Core.Profiler.StartRecording("HidePlayers.Snapshot");
+        try
+        {
+            _visibility.CheckSnapshot();
+        }
+        finally
+        {
+            Core.Profiler.StopRecording("HidePlayers.Snapshot");
         }
     }
 
@@ -219,4 +233,9 @@ public sealed partial class HidePlayers : IVisibilityEngine
         _wakeTimer = Core.Scheduler.DelayBySeconds(
             MathF.Max(time - Core.Engine.GlobalVars.CurrentTime, 0f), RecalculateVisibility);
     }
+
+    // SwiftlyS2 drains NextWorldUpdate in its IServerGameDLL::PreWorldUpdate post-hook, which the engine calls after
+    // GameFrame (NextTick and timers included) and before it builds this frame's snapshots. Work queued from inside
+    // that drain runs in the next frame's.
+    void IVisibilityEngine.CheckBeforeSnapshot() => Core.Scheduler.NextWorldUpdate(CheckVisibilitySnapshot);
 }
