@@ -6,10 +6,10 @@ namespace HidePlayers;
 internal static class PreferenceCodec
 {
     /// <summary>The mode the toggle turns on for a player who has never selected one.</summary>
-    public const HideMode DefaultToggleMode = HideMode.CounterTerrorists;
+    public const HideMode DefaultToggleMode = HideMode.Teammates;
 
-    // Version 2 made CounterTerrorists the toggle default; version 1 values, which remembered All, count as absent.
-    private const string Version = "2";
+    // Version 3 made Teammates the toggle default; earlier values count as absent.
+    private const string Version = "3";
     private const char Separator = '|';
 
     public static string Encode(HidePreferences preferences, HideMode lastActiveMode) =>

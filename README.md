@@ -17,7 +17,7 @@ Plugin to let players hide other players, and corpses, with their choice saved a
 
 ## Saving choices
 
-HidePlayers keeps each player's choice in the Cookies plugin, under the cookie key `hideplayers.preferences`. The value is a short text string, `2|<Mode>|<0|1>|<LastActiveMode>`. Version 1 values are ignored, so those players start from the defaults again.
+HidePlayers keeps each player's choice in the Cookies plugin, under the cookie key `hideplayers.preferences`. The value is a short text string, `3|<Mode>|<0|1>|<LastActiveMode>`. Earlier versions are ignored, so those players start from the defaults again.
 
 - A choice is saved when the player is Steam-authorized. A choice made before authorization is written as soon as they are authorized.
 - Choices are loaded in the background after authorization, so they can appear a moment after the player joins.
@@ -41,7 +41,7 @@ These examples use the default command names. The chat prefix comes from the ser
 | `sw_hide dead off` | `!hide dead off` | Show corpses |
 | `sw_hide dead toggle` | `!hide dead toggle` | Toggle corpse visibility |
 
-The toggle remembers your last All/Team/Enemy/CT choice across reconnects. It uses CT if you have never selected a mode, unless `DefaultPreferences.Mode` names another mode. Corpse hiding stays separate. Chat and player-console commands behave identically. These commands cannot be used from the server console.
+The toggle remembers your last All/Team/Enemy/CT choice across reconnects. It uses Teammates if you have never selected a mode, unless `DefaultPreferences.Mode` names another mode. Corpse hiding stays separate. Chat and player-console commands behave identically. These commands cannot be used from the server console.
 
 You can use `teammates` instead of `team`, and `enemies` instead of `enemy`. `!hidemenu` always opens HidePlayers' native menu. Phone's embedded Hide settings remain available independently.
 
